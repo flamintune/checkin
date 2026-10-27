@@ -12,7 +12,7 @@ GitHub Actions 实现 [GLaDOS][glados] 自动签到
 
 1. 添加 Cookie 到 Secret `GLADOS`
 
-1. 启用 Actions, 每天北京时间 00:10 自动签到。每次运行都会把每个帐号的签到结果写到 Actions 日志（是否成功、接口 message、剩余天数），不会输出 Cookie。任一帐号签到或状态查询失败，或 Secret `GLADOS` 为空，任务以失败结束；已配置的通知会在退出前发送。
+1. 启用 Actions, 每天北京时间 00:10 自动签到。每次运行都会把每个帐号的签到结果写到 Actions 日志（是否成功、接口 message、剩余天数），不会输出 Cookie。当天已经签到（接口提示明天再来）视为成功，并继续查询剩余天数。任一帐号签到或状态查询失败，或 Secret `GLADOS` 为空，任务以失败结束；已配置的通知会在退出前发送。
 
 ## 高级功能
 
