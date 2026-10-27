@@ -1,4 +1,33 @@
-const requestJson = async (url, options, what) => {
+const isAlreadyCheckedIn = (data) => {
+  if (!data || typeof data !== 'object' || Array.isArray(data) || Number(data.code) !== 1) return false
+  const message = String(data.message ?? '')
+  if (/没有权限|automated check-in/i.test(message)) return false
+  return /tomorrow|already checked in|check-?in repeats|observation logged|明天再来|已签到/i.test(message)
+}
+
+const browserHeaders = (cookie, method) => {
+  const headers = {
+    'accept': 'application/json, text/plain, */*',
+    'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6',
+    'cache-control': 'no-cache',
+    'cookie': cookie,
+    'origin': 'https://glados.one',
+    'pragma': 'no-cache',
+    'priority': 'u=1, i',
+    'referer': 'https://glados.one/console/checkin',
+    'sec-ch-ua': '"Google Chrome";v="153", "Not_A Brand";v="8", "Chromium";v="153"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"macOS"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+  }
+  if (method === 'POST') headers['content-type'] = 'application/json;charset=UTF-8'
+  return headers
+}
+
+const requestJson = async (url, options, what, { allowAlreadyCheckedIn = false } = {}) => {
   let response
   try {
     response = await fetch(url, options)
@@ -31,6 +60,8 @@ const requestJson = async (url, options, what) => {
       : `${what} returned a bad response`)
   }
 
+  if (allowAlreadyCheckedIn && isAlreadyCheckedIn(data)) return data
+
   if (Number(data.code) !== 0) {
     throw new Error(apiMessage || `${what} failed (code ${data.code})`)
   }
@@ -59,32 +90,28 @@ const glados = async () => {
   for (const cookie of cookies) {
     if (!cookie) continue
     index += 1
-    const common = {
-      'cookie': cookie,
-      'referer': 'https://glados.one/console/checkin',
-      'user-agent': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)',
-    }
     let message = ''
     let leftDays = 'unknown'
     try {
       const action = await requestJson('https://glados.one/api/user/checkin', {
         method: 'POST',
-        headers: { ...common, 'content-type': 'application/json' },
+        headers: browserHeaders(cookie, 'POST'),
         body: '{"token":"glados.one"}',
-      }, 'check-in')
+      }, 'check-in', { allowAlreadyCheckedIn: true })
+      const already = isAlreadyCheckedIn(action)
       message = action.message == null ? '' : redact(action.message)
       const status = await requestJson('https://glados.one/api/user/status', {
         method: 'GET',
-        headers: { ...common },
+        headers: browserHeaders(cookie, 'GET'),
       }, 'status')
       const rawDays = status?.data?.leftDays
       leftDays = rawDays == null || rawDays === '' || !Number.isFinite(Number(rawDays))
         ? 'unknown'
         : Number(rawDays)
-      console.log(`Account ${index}: success`)
+      console.log(`Account ${index}: ${already ? 'already checked in' : 'success'}`)
       console.log(`Message: ${message}`)
       console.log(`Left days: ${leftDays}`)
-      notice.push('Checkin OK', message, `Left Days ${leftDays}`)
+      notice.push(already ? 'Already checked in' : 'Checkin OK', message, `Left Days ${leftDays}`)
     } catch (error) {
       failed = true
       const reason = redact(error instanceof Error ? error.message : error)
