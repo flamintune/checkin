@@ -12,7 +12,7 @@ GitHub Actions 实现 [GLaDOS][glados] 自动签到
 
 1. 添加 Cookie 到 Secret `GLADOS`
 
-1. 启用 Actions, 每天北京时间 00:10 自动签到
+1. 启用 Actions, 每天北京时间 00:10 自动签到。每次运行都会把每个帐号的签到结果写到 Actions 日志（是否成功、接口 message、剩余天数），不会输出 Cookie。任一帐号签到或状态查询失败，或 Secret `GLADOS` 为空，任务以失败结束；已配置的通知会在退出前发送。
 
 ## 高级功能
 
@@ -23,7 +23,7 @@ GitHub Actions 实现 [GLaDOS][glados] 自动签到
 1. 如需推送通知, 可配置 Secret `NOTIFY`, 已支持:
     1. [WxPusher][wxpusher]: 格式 `wxpusher:{token}:{uid}`
     1. [PushPlus][pushplus]: 格式 `pushplus:{token}`
-    1. Console: 格式 `console:log`, 作为日志输出, 一般用于调试
+    1. Console: 格式 `console:log`，把同一份通知内容输出到日志，一般用于调试
     1. 如需配置多个, 可以写为多行, 每行写一个
 
 1. 注意: Cookie 以及接口输出数据, 包含帐号敏感信息, 因此不要随意公开
